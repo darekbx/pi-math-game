@@ -9,6 +9,7 @@ LCD_WIDTH   = 128 #LCD width
 LCD_HEIGHT  = 64  #LCD height
 
 class SH1106(object):
+    
     def __init__(self):
         self.width = LCD_WIDTH
         self.height = LCD_HEIGHT
