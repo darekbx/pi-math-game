@@ -1,37 +1,42 @@
+from PIL import Image
+from PIL import ImageDraw
+
 import psutil
+from time import sleep
 
 class Display_LCD:
 
-	_disp = None
-	_is_debug = False
+	WIDTH = 128
+	HEIGHT = 64
+	_image = None
+	_draw = None
 
-	def __init__(self, is_debug):
-		self._is_debug = is_debug
-
-	def init(self):
-		if self._is_debug:
-			self._disp = type('Expando', (object,), {})()
-			self._disp.getbuffer = self.debug_getbuffer
-			self._disp.ShowImage = self.debug_ShowImage
-			self._disp.width = 128
-			self._disp.height = 64
+	def __init__(self, is_debug, callback):
+		if is_debug:
+			self._image = Image.new("RGB", (self.WIDTH, self.HEIGHT), "BLACK")
+			self._draw = ImageDraw.Draw(self._image)
 		else:
-			import SH1106
-			self._disp = SH1106.SH1106()
-			self._disp.Init()
-			self._disp.clear()
+			from luma.core.interface.serial import i2c, spi
+			from luma.core.render import canvas
+			from luma.oled.device import sh1106
+			serial = spi(device=0, port=0)
+			device = sh1106(serial, rotate=2)
+			while True:
+				with canvas(device) as draw:
+					callback(draw)
+				sleep(0.05)
 
-	def dimensions(self):
-		return (self._disp.width, self._disp.height)
+	def debug_draw(self):
+		return self._draw
 
-	def show_image(self, image):
-		self._disp.ShowImage(self._disp.getbuffer(image))
-
-	def debug_getbuffer(self, image):
-		return image
-
-	def debug_ShowImage(self, image):
+	def debug_show(self):
 		for proc in psutil.process_iter():
 			if proc.name() == "display":
 				proc.kill()
-		image.show()
+		self._image.show()
+
+	def debug_clear(self):
+		self._draw.rectangle((0,0,self.WIDTH,self.HEIGHT), fill="BLACK")
+
+	def debug_getbuffer(self, image):
+		return image
